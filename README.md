@@ -17,7 +17,7 @@ Les cellules sont modélisées sur une grille 2D, où chaque cellule peut être 
 
 Le diagramme de flux suivant illustre le processus de simulation :
 
-[diagramme de flux de la croissance tumorale](./img/flow_diagram.png)
+![Diagramme de flux de la croissance tumorale](img/flow_diagram.png)
 
 ## Scénarios simulés
 - **scenario_1.py** : 
@@ -31,4 +31,8 @@ Le diagramme de flux suivant illustre le processus de simulation :
 - **scenario_3.py** : 
     - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (tSTC). 
     - Impact de la probabilité maximale de division cellulaire (`pmax`) sur la dynamique de croissance tumorale. 
+    - Suivi de la population tumorale RTC et tSTC + ncRTC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
+- **scenario_4.py** : 
+    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (tSTC). 
+    - Impact de la probabilité d'apoptose sur la dynamique de croissance tumorale.
     - Suivi de la population tumorale RTC et tSTC + ncRTC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.

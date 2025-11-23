@@ -7,6 +7,7 @@
 import sys # gestion du système
 import time # gestion du temps
 import os # gestion des fichiers
+import json
 import numpy as np # calculs numériques
 import random as rd # randomisation
 import seaborn as sns # visualisation 2D
@@ -234,6 +235,7 @@ def simulation(parameters : dict, show_anim = False, save_img = False, img_itrvl
     p_proliferation = 24 / temps_cc * dt
     p_migration = mu * dt
     n_steps = int(n_jours / dt)    # nombre total de pas horaires
+    p_apoptose = p_apoptose * dt  # probabilité d'apoptose par pas de temps
     
     # == 2. Gestion dossier si save_img est True == #
 
@@ -322,8 +324,12 @@ def simulation(parameters : dict, show_anim = False, save_img = False, img_itrvl
             if show_anim:
                 plt.draw()
                 plt.pause(0.05)
-
     print()
+
+    json_file = f"./data/sim_{int(time.time())}.json"
+    grilles_par_jour_serializable = [grille.tolist() for grille in grilles_par_jour]
+    with open(json_file, 'w') as f:
+        json.dump(grilles_par_jour_serializable, f)
     return grilles_par_jour
 
 # == == #
@@ -338,13 +344,13 @@ def pop_vs_time(results, conditions, conditions_val, colors=["#1f77b4", "#ff7f0e
 
         sim_grilles = results[condition] # Chaque sim_grilles = liste de listes de grilles à différents steps
 
-        match pop: # choix du type de population à tracer
-            case "total":
-                populations = [np.array([np.count_nonzero(grille) for grille in grilles]) for grilles in sim_grilles]
-            case "stc":
-                populations = [np.array([np.count_nonzero(grille >= conditions_val[idx] + 2) for grille in grilles]) for grilles in sim_grilles]
-            case "rtc":
-                populations = [np.array([np.count_nonzero(grille <= conditions_val[idx] + 1) for grille in grilles]) for grilles in sim_grilles]
+        # choix du type de population à tracer
+        if pop == "total":
+            populations = [np.array([np.count_nonzero(grille) for grille in grilles]) for grilles in sim_grilles]
+        elif pop == "stc":
+            populations = [np.array([np.count_nonzero(grille >= conditions_val[idx] + 2) for grille in grilles]) for grilles in sim_grilles]
+        elif pop == "rtc":
+            populations = [np.array([np.count_nonzero(grille <= conditions_val[idx] + 1) for grille in grilles]) for grilles in sim_grilles]
 
         # paramètres du plot
         min_len = min([len(pop) for pop in populations]) # on prend la plus petite sim
