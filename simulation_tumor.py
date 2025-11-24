@@ -165,8 +165,8 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
         is_true_stem = potentiel > pmax + 2
         # Clonogenic stem cell: potentiel == pmax + 2
         is_clonogenic_stem = potentiel == pmax + 2
-        # RTC: potentiel <= pmax + 1
-        is_rtc = potentiel <= pmax + 1
+        # RTC: potentiel < pmax + 2
+        is_rtc = potentiel < pmax + 2
 
         # 1. Apoptose (RTC uniquement)
         if is_rtc and proba_apoptose[cell_idx] < p_apoptose:
@@ -186,9 +186,7 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
             if is_true_stem:
                 # True stem cell division: asymmetric (RTC) or symmetric (true stem)
                 if np.random.random() < p_stc:
-                    grille_new[vx, vy] = (
-                        pmax + 3
-                    )  # new true stem cell (symmetric division)
+                    grille_new[vx, vy] = (pmax + 3)  # new true stem cell (symmetric division)
                 else:
                     grille_new[vx, vy] = pmax + 1  # new RTC (asymmetric division)
             elif is_clonogenic_stem:
@@ -216,7 +214,7 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
 
 
 def simulation(
-    parameters: dict, show_anim=False, save_img=False, img_itrvl=[], img_dir="img"
+    parameters: dict, show_anim=False, save_img=False, img_itrvl=[], img_dir="img", save_json=False
 ):
     """
     Exécute la simulation de croissance tumorale avec les paramètres spécifiés. 
@@ -364,10 +362,11 @@ def simulation(
                 plt.pause(0.05)
     print()
 
-    json_file = f"./data/sim_{int(time.time())}.json"
-    grilles_par_jour_serializable = [grille.tolist() for grille in grilles_par_jour]
-    with open(json_file, "w") as f:
-        json.dump(grilles_par_jour_serializable, f)
+    if save_json:
+        json_file = f"./data/sim_{int(time.time())}.json"
+        grilles_par_jour_serializable = [grille.tolist() for grille in grilles_par_jour]
+        with open(json_file, "w") as f:
+            json.dump(grilles_par_jour_serializable, f)
     return grilles_par_jour
 
 
@@ -379,19 +378,20 @@ def simulation(
 def pop_vs_time(
     results,
     conditions,
-    conditions_val,
     colors=["#1f77b4", "#ff7f0e", "#2ca02c"],
     log_scale=False,
+    pmax=10,
     pop="total",
+    legend_prefix="pmax",
 ):
 
     plt.figure(figsize=(8, 6))
 
     for idx, condition in enumerate(conditions):
 
-        sim_grilles = results[
-            condition
-        ]  # Chaque sim_grilles = liste de listes de grilles à différents steps
+        sim_grilles = results[condition] 
+        pmax_ = pmax if isinstance(pmax, int) else pmax[idx] # si pmax est une liste, on prend la valeur correspondante sinon on prend la valeur entière
+        stc_threshold = pmax_ + 2
 
         # choix du type de population à tracer
         if pop == "total":
@@ -401,40 +401,28 @@ def pop_vs_time(
             ]
         elif pop == "stc":
             populations = [
-                np.array(
-                    [
-                        np.count_nonzero(grille >= conditions_val[idx] + 2)
-                        for grille in grilles
-                    ]
-                )
+                np.array([np.count_nonzero((grille >= stc_threshold) & (grille > 0)) for grille in grilles])
                 for grilles in sim_grilles
             ]
         elif pop == "rtc":
             populations = [
-                np.array(
-                    [
-                        np.count_nonzero(grille <= conditions_val[idx] + 1)
-                        for grille in grilles
-                    ]
-                )
+                np.array([np.count_nonzero((grille < stc_threshold) & (grille > 0)) for grille in grilles])
                 for grilles in sim_grilles
             ]
 
         # paramètres du plot
-        min_len = min([len(pop) for pop in populations])  # on prend la plus petite sim
-        pops_arr = np.array(
-            [pop[:min_len] for pop in populations]
-        )  # on aligne les tailles
-        mean_pop = pops_arr.mean(axis=0)  # moyenne
-        std_pop = pops_arr.std(axis=0)  # écart-type
-        x = np.arange(1, min_len + 1)  # temps en jours
+        n_days = min(len(pop) for pop in populations)
+        populations_arr = np.array(populations)
+        mean_pop = populations_arr.mean(axis=0)  # moyenne
+        std_pop = populations_arr.std(axis=0)  # écart-type
+        x = np.arange(1, n_days + 1)  # temps en jours
         color = colors[idx % len(colors)]  # couleur pour la condition actuelle
 
         plt.plot(
             # données à tracer (jours, population moyenne)
             x,
             mean_pop,
-            label=f"pmax={conditions_val[idx]}",
+            label=f"{legend_prefix}={conditions[idx]}",
             color=color,
             linewidth=2,
         )
@@ -445,8 +433,8 @@ def pop_vs_time(
     if log_scale:
         plt.xscale("log")
     plt.yscale("log")
-    plt.xlim(1, None)
-    plt.ylim(1, None)
+    plt.xlim(left=1)
+    plt.ylim(bottom=1)
     plt.xlabel("Time (days)", fontsize=13)
     plt.ylabel("Cell count", fontsize=13)
     plt.legend(fontsize=12)

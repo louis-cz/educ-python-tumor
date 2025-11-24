@@ -42,8 +42,13 @@ if __name__ == "__main__":
                 grilles = simulation(sim_params, save_img=False)
             results[pmax].append(grilles)
 
-    pop_dynamics_STC = pop_vs_time(results, pmax_val, pmax_val, colors=["#d62728", "#1f77b4", "#ff7f0e", "#2ca02c"], pop="stc")
+    colors = ["#d62728", "#1f77b4", "#ff7f0e", "#2ca02c"]
+
+    pop_dynamics = pop_vs_time(results, pmax_val, colors=colors, pmax = pmax_val, pop="total", legend_prefix="pmax")
+    pop_dynamics.savefig("plots/S3_impact_pmax_population_tumorale_totale.png", dpi=150)
+
+    pop_dynamics_STC = pop_vs_time(results, pmax_val, colors=colors, pmax = pmax_val, pop="stc", legend_prefix="pmax")
     pop_dynamics_STC.savefig("plots/S3_impact_pmax_population_tumorale_STC.png", dpi=150)
     
-    pop_dynamics_RTC = pop_vs_time(results, pmax_val, pmax_val, colors=["#d62728", "#1f77b4", "#ff7f0e", "#2ca02c"], pop="rtc")
+    pop_dynamics_RTC = pop_vs_time(results, pmax_val, colors=colors, pmax = pmax_val, pop="rtc", legend_prefix="pmax")
     pop_dynamics_RTC.savefig("plots/S3_impact_pmax_population_tumorale_RTC.png", dpi=150)
