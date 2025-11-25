@@ -42,7 +42,7 @@ if __name__ == "__main__":
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
 
     pop_dynamics = pop_vs_time(results, pmax_val, colors=colors, pmax=pmax_val, pop="total", legend_prefix="pmax")
-    pop_dynamics.savefig("plots/S2_impact_pmax_population_tumorale.png", dpi=150)
+    pop_dynamics.savefig("plots/S2_impact_pmax_population_tumorale_totale.png", dpi=150)
 
     pop_dynamics_STC = pop_vs_time(results, pmax_val, colors=colors, pmax=pmax_val, pop="stc", legend_prefix="pmax")
     pop_dynamics_STC.savefig("plots/S2_impact_pmax_population_tumorale_STC.png", dpi=150)
