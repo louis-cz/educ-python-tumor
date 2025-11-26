@@ -44,8 +44,5 @@ if __name__ == "__main__":
     pop_dynamics = pop_vs_time(results, pmax_val, colors=colors, pmax=pmax_val, pop="total", legend_prefix="pmax")
     pop_dynamics.savefig("plots/S2_impact_pmax_population_tumorale_totale.png", dpi=150)
 
-    pop_dynamics_STC = pop_vs_time(results, pmax_val, colors=colors, pmax=pmax_val, pop="stc", legend_prefix="pmax")
-    pop_dynamics_STC.savefig("plots/S2_impact_pmax_population_tumorale_STC.png", dpi=150)
-    
     pop_dynamics_RTC = pop_vs_time(results, pmax_val, colors=colors, pmax=pmax_val, pop="rtc", legend_prefix="pmax")
     pop_dynamics_RTC.savefig("plots/S2_impact_pmax_population_tumorale_RTC.png", dpi=150)
