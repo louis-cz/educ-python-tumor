@@ -9,14 +9,10 @@ import time  # gestion du temps
 import os  # gestion des fichiers
 import json
 import numpy as np  # calculs numériques
-import random as rd  # randomisation
 import seaborn as sns  # visualisation 2D
 import matplotlib.pyplot as plt  # affichage des graphiques
 from scipy.ndimage import center_of_mass  # calcul du centre de masse
-from matplotlib.colors import (
-    ListedColormap,
-    BoundaryNorm,
-)  # gestion des couleurs (heatmap)
+from matplotlib.colors import ListedColormap, BoundaryNorm # gestion des couleurs (heatmap)
 
 # Description de la grille
 # chaque case peut contenir une cellule (!= 0) ou être vide (0)
@@ -39,7 +35,6 @@ from matplotlib.colors import (
 # pour cela, on peut utiliser scipy.ndimage.center_of_mass pour trouver le centre de la tumeur
 
 # == MÉTHODES POUR LA MISE À JOUR DE LA GRILLE == #
-
 
 def get_coordonnees_voisins(x, y, taille_grille):
     """
@@ -103,12 +98,10 @@ def cellule_au_bord(grille):
             return True
     return False
 
-
 # == == #
 
 
 # == FONCTIONS DE GESTION DE LA GRILLE == #
-
 
 def grille_initialisation(taille, potentiel):
     grille = np.zeros((taille, taille), dtype="int")
@@ -206,12 +199,10 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
 
     return grille_new
 
-
 # == == #
 
 
 # == SIMULATION == #
-
 
 def simulation(
     parameters: dict, show_anim=False, save_img=False, img_itrvl=[], img_dir="img", save_json=False
@@ -280,9 +271,12 @@ def simulation(
 
     # == 3. Simulation == #
 
-    grilles = []
     grille = grille_initialisation(taille, pinit)
-    grilles.append(grille.copy())
+    cell_counts = {
+        "total": [grille.nonzero()[0].size],
+        "rtc": [grille[(grille > 0) & (grille <= pmax + 1)].nonzero()[0].size],
+        "stc": [grille[grille > pmax + 1].nonzero()[0].size],
+    }
 
     if show_anim or save_img:
         _, ax = plt.subplots()
@@ -302,7 +296,9 @@ def simulation(
 
         # Sauvegarde de la grille à la fin de chaque jour
         if (step + 1) % heures_par_jour == 0 or step == n_steps - 1:
-            grilles_par_jour.append(grille.copy())
+            cell_counts["total"].append(grille.nonzero()[0].size)
+            cell_counts["rtc"].append(grille[(grille > 0) & (grille <= pmax + 1)].nonzero()[0].size)
+            cell_counts["stc"].append(grille[grille > pmax + 1].nonzero()[0].size)
 
         # affichage progression
         if step % print_freq == 0 or step == n_steps - 1:
@@ -319,8 +315,13 @@ def simulation(
             )
             sys.stdout.flush()  # permet de supprimer l'affichage précédent
 
-        # affichage / sauvegarde image (si le jour correspond est dans img_itrvl)
-        if (show_anim or save_img) and ((step + 1) // heures_par_jour in img_itrvl):
+        
+        # condition :
+        # 1. fin de journée et show_anim = True
+        # 2. fin de journée et save_img = True et jour dans img_itrvl
+        is_at_end_of_day = (step + 1) % heures_par_jour == 0
+        # is_at_end_of_day = True
+        if (is_at_end_of_day and (show_anim or (save_img and (((step + 1) // heures_par_jour) in img_itrvl)))):
             ax.clear()
             # si 0 → blanc, si pmax + 1 → jaune (STC)
             # sinon (de 1 à pmax + 1), les RTCs ont une couleur entre noir et rouge selon leur potentiel
@@ -360,69 +361,69 @@ def simulation(
             if show_anim:
                 plt.draw()
                 plt.pause(0.05)
+
     print()
+    if show_anim:
+        plt.show()
 
     if save_json:
-        json_file = f"./data/sim_{int(time.time())}.json"
-        grilles_par_jour_serializable = [grille.tolist() for grille in grilles_par_jour]
-        with open(json_file, "w") as f:
-            json.dump(grilles_par_jour_serializable, f)
-    return grilles_par_jour
+        suffix = f"{time.time():.0f}"
+        results = {
+            "parameters": parameters,
+            "cell_counts": cell_counts,
+        }
+        # Ensure the 'data' directory exists
+        if not os.path.exists("data"):
+            os.makedirs("data")
+        with open(f"data/simulation_{suffix}.json", "w") as json_file:
+            json.dump(results, json_file, indent=4)
+
+    return cell_counts
 
 
 # == == #
 
 # == PLOTTING DES RÉSULTATS == #
 
-
 def pop_vs_time(
     results,
-    conditions,
     colors=["#1f77b4", "#ff7f0e", "#2ca02c"],
     log_scale=False,
-    pmax=10,
-    pop="total",
-    legend_prefix="pmax",
+    pop="total"
 ):
+    conditions = results.keys()  # list of tested conditions
 
     plt.figure(figsize=(8, 6))
 
     for idx, condition in enumerate(conditions):
-
-        sim_grilles = results[condition] 
-        pmax_ = pmax if isinstance(pmax, int) else pmax[idx] # si pmax est une liste, on prend la valeur correspondante sinon on prend la valeur entière
-        stc_threshold = pmax_ + 2
+        all_cell_counts = results[condition]  # list of cell_counts dicts
 
         # choix du type de population à tracer
         if pop == "total":
             populations = [
-                np.array([np.count_nonzero(grille) for grille in grilles])
-                for grilles in sim_grilles
+                np.array(sim_result["total"]) for sim_result in all_cell_counts
             ]
         elif pop == "stc":
             populations = [
-                np.array([np.count_nonzero((grille >= stc_threshold) & (grille > 0)) for grille in grilles])
-                for grilles in sim_grilles
+                np.array(sim_result["stc"]) for sim_result in all_cell_counts
             ]
         elif pop == "rtc":
             populations = [
-                np.array([np.count_nonzero((grille < stc_threshold) & (grille > 0)) for grille in grilles])
-                for grilles in sim_grilles
+                np.array(sim_result["rtc"]) for sim_result in all_cell_counts
             ]
 
         # paramètres du plot
         n_days = min(len(pop) for pop in populations)
-        populations_arr = np.array(populations)
+        populations_arr = np.array([pop[:n_days] for pop in populations])
         mean_pop = populations_arr.mean(axis=0)  # moyenne
         std_pop = populations_arr.std(axis=0)  # écart-type
         x = np.arange(1, n_days + 1)  # temps en jours
         color = colors[idx % len(colors)]  # couleur pour la condition actuelle
 
         plt.plot(
-            # données à tracer (jours, population moyenne)
             x,
             mean_pop,
-            label=f"{legend_prefix}={conditions[idx]}",
+            label=f"{condition}",
             color=color,
             linewidth=2,
         )
@@ -439,4 +440,5 @@ def pop_vs_time(
     plt.ylabel("Cell count", fontsize=13)
     plt.legend(fontsize=12)
     plt.tight_layout()
+
     return plt
