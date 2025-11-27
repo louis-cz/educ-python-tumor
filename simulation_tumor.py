@@ -63,7 +63,7 @@ def get_voisins_vides(x, y, grille):
     """
     Renvoie les coordonnées des voisins vides (valeur 0) pour une cellule donnée (x, y).
     """
-    voisins = get_coordonnees_voisins(x, y, grille.shape[0])
+    voisins = get_coordonnees_voisins(x, y, grille.shape[0]) # shape[0] car matrice carré
     voisins_vides = [(vx, vy) for vx, vy in voisins if grille[vx, vy] == 0]
     return voisins_vides
 
@@ -90,9 +90,9 @@ def cellule_au_bord(grille):
 
     # extraction des coordonnées des cellules
     coord_cells = np.nonzero(grille)
-    coord_cells_set = set(
-        zip(coord_cells[0], coord_cells[1])
-    )  # transformation pour le set
+    coord_cells_set = set(zip(coord_cells[0], coord_cells[1]))  # transformation pour le set
+    
+    # vérification
     for coord in bords_coords:
         if coord in coord_cells_set:
             return True
@@ -117,17 +117,13 @@ def grille_recentrage(grille):
         taille = grille.shape[0]
         new_taille = taille + 2  # on ajoute une marge de 1 de chaque côté
         new_grille = np.zeros((new_taille, new_taille), dtype="int")
+
         # copier l'ancienne grille dans la nouvelle en la recentrant
         com = center_of_mass(grille)  # centre de masse de la tumeur
-        com_x, com_y = int(com[0]), int(
-            com[1]
-        )  # case la plus proche du centre de masse
-        start_x = max(
-            0, min(new_taille - taille, new_taille // 2 - com_x)
-        )  # position de départ pour copier l'ancienne grille (x)
-        start_y = max(
-            0, min(new_taille - taille, new_taille // 2 - com_y)
-        )  # position de départ pour copier l'ancienne grille (y)
+        com_x, com_y = int(com[0]), int(com[1])  # case la plus proche du centre de masse
+
+        start_x = max(0, min(new_taille - taille, new_taille // 2 - com_x))  # position de départ pour copier l'ancienne grille (x)
+        start_y = max(0, min(new_taille - taille, new_taille // 2 - com_y))  # position de départ pour copier l'ancienne grille (y)
         new_grille[start_x : start_x + taille, start_y : start_y + taille] = grille
 
         return new_grille
@@ -135,7 +131,7 @@ def grille_recentrage(grille):
 
 def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, pmax):
 
-    coord_cells = np.transpose(np.nonzero(grille))
+    coord_cells = np.transpose(np.nonzero(grille)) # liste des coordonnées des cellules
     n_cells = len(coord_cells)
     order = np.arange(n_cells)
     np.random.shuffle(order)
@@ -179,7 +175,7 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
             if is_true_stem:
                 # True stem cell division: asymmetric (RTC) or symmetric (true stem)
                 if np.random.random() < p_stc:
-                    grille_new[vx, vy] = (pmax + 3)  # new true stem cell (symmetric division)
+                    grille_new[vx, vy] = pmax + 3  # new true stem (symmetric division)
                 else:
                     grille_new[vx, vy] = pmax + 1  # new RTC (asymmetric division)
             elif is_clonogenic_stem:
@@ -195,8 +191,6 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
             grille_new[vx, vy] = potentiel
             grille_new[x, y] = 0
 
-        # 5. Quiescence (aucune action possible si aucune condition n'est remplie)
-
     return grille_new
 
 # == == #
@@ -205,7 +199,12 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
 # == SIMULATION == #
 
 def simulation(
-    parameters: dict, show_anim=False, save_img=False, img_itrvl=[], img_dir="img", save_json=False
+    parameters: dict, 
+    show_anim=False, 
+    save_img=False, 
+    img_itrvl=[], 
+    img_dir="img", 
+    save_json=False
 ):
     """
     Exécute la simulation de croissance tumorale avec les paramètres spécifiés. 
@@ -285,7 +284,6 @@ def simulation(
     print_freq = max(1, n_steps // 100)
 
     # On ne sauvegarde qu'une grille par jour pour les résultats
-    grilles_par_jour = [grille.copy()]
     heures_par_jour = int(1 / dt)
 
     for step in range(n_steps):  # boucle principale de la simulation (pas horaires)
@@ -319,29 +317,26 @@ def simulation(
         # condition :
         # 1. fin de journée et show_anim = True
         # 2. fin de journée et save_img = True et jour dans img_itrvl
-        is_at_end_of_day = (step + 1) % heures_par_jour == 0
-        # is_at_end_of_day = True
+        # is_at_end_of_day = (step + 1) % heures_par_jour == 0
+        is_at_end_of_day = True
         if (is_at_end_of_day and (show_anim or (save_img and (((step + 1) // heures_par_jour) in img_itrvl)))):
             ax.clear()
-            # si 0 → blanc, si pmax + 1 → jaune (STC)
+            # si 0 → blanc, si pmax + 2 → jaune foncé (STC like), si pmax + 3 → jaune clair (true STC)
             # sinon (de 1 à pmax + 1), les RTCs ont une couleur entre noir et rouge selon leur potentiel
             colors = [(1, 1, 1)]  # blanc
-            for i in range(1, pmax + 1):
-                frac = i / pmax
-                colors.append((frac, 0, 0))  # RGB: noir→rouge
-            colors.append((1, 1, 0))  # jaune pour STC clonogenic (pmax + 2)
-            colors.append((1, 1, 0))  # jaune pour STC true stem (pmax + 3)
+            for i in range(1, pmax + 2):
+                colors.append((i / (pmax + 1), 0, 0))  # dégradé de rouge
+            colors.append((1, 1, 0))  # jaune foncé (STC like)
+            colors.append((1, 1, 0))  # jaune foncé (true STC)
 
-            # généré par copilot #
+            # Vérification de la longueur de colors et bounds (copilot)
+            bounds = list(range(len(colors)))  # bornes pour chaque couleur (0 à len(colors)-1)
             cmap = ListedColormap(colors)  # création de la colormap
-            bounds = list(
-                range(pmax + 4)
-            )  # bornes pour chaque couleur (0 à pmax+3 inclus)
             norm = BoundaryNorm(bounds, cmap.N)  # normalisation des couleurs
             #
 
             sns.heatmap(
-                grille, cmap=cmap, cbar=False, ax=ax, vmin=0, vmax=pmax + 3, norm=norm
+                grille, cmap=cmap, cbar=False, ax=ax, norm=norm, vmin = 0, vmax = pinit
             )
             jour_actuel = (step + 1) // heures_par_jour
             ax.set_title(f"Jour {jour_actuel}", fontsize=14)
@@ -428,7 +423,10 @@ def pop_vs_time(
             linewidth=2,
         )
         plt.fill_between(
-            x, mean_pop - std_pop, mean_pop + std_pop, alpha=0.3, color=color
+            x, 
+            mean_pop - std_pop, 
+            mean_pop + std_pop, 
+            alpha=0.3, color=color
         )
 
     if log_scale:
