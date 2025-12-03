@@ -7,11 +7,10 @@
 import sys  # gestion du système
 import time  # gestion du temps
 import os  # gestion des fichiers
-import json
+import json # sauvegarde des résultats
 import numpy as np  # calculs numériques
 import seaborn as sns  # visualisation 2D
 import matplotlib.pyplot as plt  # affichage des graphiques
-from scipy.ndimage import center_of_mass  # calcul du centre de masse
 from matplotlib.colors import ListedColormap, BoundaryNorm # gestion des couleurs (heatmap)
 
 # Description de la grille
@@ -34,6 +33,8 @@ from matplotlib.colors import ListedColormap, BoundaryNorm # gestion des couleur
 # à chaque itération, il faut également recentrer la grille (le domaine de simulation) autour de la tumeur
 # pour cela, on peut utiliser scipy.ndimage.center_of_mass pour trouver le centre de la tumeur
 
+
+
 # == MÉTHODES POUR LA MISE À JOUR DE LA GRILLE == #
 
 MOORE_COORDS = [
@@ -50,84 +51,96 @@ MOORE_COORDS = [
     
 def find_all_empty_neighbors(grille, coord_cells):
     """
-    Trouve un voisin vide aléatoire pour chaque cellule dans coord_cells (ou -1 si aucun).
-    grille : Grille de simulation.
-    coord_cells : Coordonnées des cellules (array de forme (n_cells, 2)). 
+    Trouve un voisin vide aléatoire pour chaque cellule dans coord_cells (ou -1 si aucun)
     """
-    n_cells = len(coord_cells)
+    n_cells = len(coord_cells) # nombre de cellules à traiter
     result = np.full((n_cells, 2), -1, dtype=int)  # init à -1 pour tout le monde
     
     moore_shuffled = MOORE_COORDS.copy() # copie pour ne pas modifier l'original
     np.random.shuffle(moore_shuffled) # shuffle les coordonées des voisins
     
-    for dx, dy in moore_shuffled:
-        # Calculer tous les voisins en une fois
-        nx = coord_cells[:, 0] + dx # nouvelle coordonnée x (ligne → axe 0)
-        ny = coord_cells[:, 1] + dy # nouvelle coordonnée y (colonne → axe 1)
+    for dx, dy in moore_shuffled: # pour chaque coordonnée de voisin
+        nx = coord_cells[:, 0] + dx # [:, 0] car x = ligne → axe 0
+        ny = coord_cells[:, 1] + dy # [:, 1] car y = colonne → axe 1
         
         # check : bordures de la grille + case vide
         valid = (nx >= 0) & (nx < grille.shape[0]) & (ny >= 0) & (ny < grille.shape[1])
         empty = grille[nx[valid], ny[valid]] == 0
         
         # màj de résultat pour les cellules sans voisin trouvé
-        valid_indices = np.where(valid)[0] # indices valides dans coord_cells
-        empty_indices = valid_indices[empty] # indices des cellules avec voisin vide
+        valid_indices = np.where(valid)[0] # filtre aux indices valides dans coord_cells
+        empty_indices = valid_indices[empty] # filtre aux indices des cellules avec voisin vide
         mask = result[empty_indices, 0] == -1  # Pas encore de voisin trouvé
         result[empty_indices[mask], 0] = nx[empty_indices[mask]] # mise à jour x
         result[empty_indices[mask], 1] = ny[empty_indices[mask]] # mise à jour y
     
+    # result est donc sous la forme [[x1, y1], [x2, y2], ...] ou [-1, -1] si pas de voisin vide
     return result
 
-# ici, on vérifie si une cellule est présente sur les bords de la grille
-# pour ça on regarde les premières et dernières lignes et colonnes
-# any() renvoie True si au moins un élément est vrai
+
 def cellule_au_bord(grille):
-    cond_l = grille[0, :].any() or grille[-1, :].any()
-    cond_c = grille[:, 0].any() or grille[:, -1].any()
+    """
+    Vérifie si une cellule est présente sur les bords de la grille.
+    Pour ça on regarde les premières et dernières lignes et colonnes
+    """
+    # any() renvoie True si au moins un élément est vrai
+    cond_l = grille[0, :].any() or grille[-1, :].any() # [0, :] → première ligne et [-1, :] → dernière ligne
+    cond_c = grille[:, 0].any() or grille[:, -1].any() # [:, 0] → première colonne et [:, -1] → dernière colonne
     return cond_l or cond_c
+
 # == == #
+
 
 
 # == FONCTIONS DE GESTION DE LA GRILLE == #
 
 def grille_initialisation(taille, potentiel):
+    """
+    On initialise la grille avec une cellule au centre
+    """
     grille = np.zeros((taille, taille), dtype="int")
     grille[taille // 2, taille // 2] = potentiel
     return grille
 
 
 def grille_recentrage(grille):
+    """
+    Recentre la grille autour de la tumeur si une cellule est au bord
+    """
     if not cellule_au_bord(grille):
         return grille  # pas besoin de recentrer si pas de cellule au bord
     else:
-        non_zero = np.argwhere(grille > 0)
-        if len(non_zero) == 0:
-            return grille  # grille vide, pas de recentrage nécessaire
+        non_zero = np.argwhere(grille > 0) # on récupère les coordonnées des cellules
         
+        # on trouve les min et max en x et y
         min_x, min_y = non_zero.min(axis=0)
-        max_x, max_y = non_zero.max(axis=0)
+        max_x, max_y = non_zero.max(axis=0) 
 
-        center_x = (min_x + max_x) // 2
+        # équivalent de trouver le centre de masse
+        center_x = (min_x + max_x) // 2 
         center_y = (min_y + max_y) // 2
 
-        taille = grille.shape[0]
-        new_taille = taille + 2  # nouvelle taille double
-        new_grille = np.zeros((new_taille, new_taille), dtype="int")
+        taille = grille.shape[0] 
+        new_taille = taille + 2  # on ajoute deux marges
+        new_grille = np.zeros((new_taille, new_taille), dtype="int") # nouvelle grille vide
 
+        # calcul des décalages
         offset_x = new_taille // 2 - center_x
         offset_y = new_taille // 2 - center_y
 
-        # Ensure indices are within bounds
+        # /!\ → bords peuvent dépasser donc on réduit
         x_start_new = max(offset_x, 0)
         y_start_new = max(offset_y, 0)
         x_end_new = min(offset_x + taille, new_taille)
         y_end_new = min(offset_y + taille, new_taille)
 
+        # et on calcule les indices correspondants dans l'ancienne grille
         x_start_old = max(-offset_x, 0)
         y_start_old = max(-offset_y, 0)
         x_end_old = x_start_old + (x_end_new - x_start_new)
         y_end_old = y_start_old + (y_end_new - y_start_new)
 
+        # copie des valeurs de l'ancienne grille vers la nouvelle
         new_grille[x_start_new:x_end_new, y_start_new:y_end_new] = grille[x_start_old:x_end_old, y_start_old:y_end_old]
         
         return new_grille
@@ -151,7 +164,7 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
     grille_new = grille.copy()
     voisins_vides = find_all_empty_neighbors(grille, coord_cells)
 
-    # 1. Apoptose (vérifiée sur TOUTES les cellules)
+    # 1. Apoptose (toutes les cellules)
     for cell_idx in range(n_cells):
         x, y = coord_cells[cell_idx]
         potentiel = potentiels[cell_idx]
@@ -164,8 +177,8 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
         if is_rtc[cell_idx] and proba_apoptose[cell_idx] < p_apoptose:
             grille_new[x, y] = 0
 
-    # 2. Prolifération et Migration (seulement pour les cellules avec voisin libre)
-    has_voisin = voisins_vides[:, 0] != -1
+    # 2. Prolifération et Migration (seulement pour les cellules avec >=1 voisin libre)
+    has_voisin = voisins_vides[:, 0] != -1 # on check seulement la première colonne
     cellules_avec_voisin = np.where(has_voisin)[0]
     np.random.shuffle(cellules_avec_voisin)
 
@@ -180,28 +193,26 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
         # 2. Recherche de voisins vides pour prolifération ou migration
         voisin_vide = voisins_vides[cell_idx]
         if (voisin_vide == -1).all():
-            continue  # pas de voisins vides, quiescence
+            continue  # pas de voisins vides → quiescence
 
         vx, vy = voisin_vide
 
         if grille_new[vx, vy] != 0:
-            continue  # le voisin a déjà été occupé entre-temps
+            continue  # le voisin a déjà été occupé entre-temps → quiescence
 
         # 3. Prolifération
         if proba_proliferation[cell_idx] < p_proliferation:
             if is_true_stem[cell_idx]:
-                # True stem cell division: asymmetric (RTC) or symmetric (true stem)
+                
                 if np.random.random() < p_stc:
-                    grille_new[vx, vy] = pmax + 3  # new true stem (symmetric division)
+                    grille_new[vx, vy] = pmax + 3  # STC
                 else:
-                    grille_new[vx, vy] = pmax + 1  # new RTC (asymmetric division)
+                    grille_new[vx, vy] = pmax + 1  # RTC
             elif is_clonogenic_stem[cell_idx]:
-                # Clonogenic stem cell division: only RTC daughters
-                grille_new[vx, vy] = pmax + 1  # new RTC
+                grille_new[vx, vy] = pmax + 1  # RTC
             else:
-                # RTC division: both mother and daughter lose 1 potential
-                grille_new[vx, vy] = potentiel - 1
-                grille_new[x, y] = potentiel - 1
+                grille_new[vx, vy] = potentiel - 1 # RTC clone
+                grille_new[x, y] = potentiel - 1 # mise à jour de la cellule mère
             continue
 
         # 4. Migration
@@ -212,6 +223,7 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
     return grille_new
 
 # == == #
+
 
 
 # == SIMULATION == #
@@ -394,6 +406,8 @@ def simulation(
 
 # == == #
 
+
+
 # == PLOTTING DES RÉSULTATS == #
 
 def pop_vs_time(
@@ -457,3 +471,5 @@ def pop_vs_time(
     plt.tight_layout()
 
     return plt
+
+# == == #

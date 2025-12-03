@@ -15,7 +15,7 @@ if __name__ == "__main__":
     }
 
     img_intervals = [166, 333]
-    n_sim_per_case = 3
+    n_sim_per_case = 5
 
     # 6 cas : 3 valeurs de mu x 2 valeurs de p_stc
     mu_values = [1, 5, 10]

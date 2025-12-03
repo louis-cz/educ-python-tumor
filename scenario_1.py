@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     pmax = [10, 15, 20] # valeurs de pmax à tester
     pinit = [11, 16, 21] # valeurs de pinit correspondantes (pmax + 1 car on veut des RTC au départ)
-    n_sim_per_pmax = 3 # nombre de simulations par pmax
+    n_sim_per_pmax = 5 # nombre de simulations par pmax
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c"] # couleurs pour les plots
 
     results = {max_val: [] for max_val in pmax} # liste pour chaque condition avec clef = pmax

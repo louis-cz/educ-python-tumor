@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     pmax = [10, 15, 20] # valeurs de pmax à tester
     pinit = [12, 17, 22] # valeurs de pinit correspondantes (pmax + 2 car on veut une STC clonogenic au départ)
-    n_sim_per_pmax = 3 # nombre de simulations par pmax
+    n_sim_per_pmax = 5 # nombre de simulations par pmax
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c"] # couleurs pour les plots
 
     results = {pmax_val: [] for pmax_val in pmax} # liste pour chaque condition avec clef = pmax
