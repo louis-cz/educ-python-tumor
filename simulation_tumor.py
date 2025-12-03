@@ -36,68 +36,55 @@ from matplotlib.colors import ListedColormap, BoundaryNorm # gestion des couleur
 
 # == MÉTHODES POUR LA MISE À JOUR DE LA GRILLE == #
 
-def get_coordonnees_voisins(x, y, taille_grille):
-    """
-    Renvoie les coordonnées des voisins de Moore pour une cellule (x, y).
-    8 voisins possibles : NW, N, NE, W, E, SW, S, SE + gestion des bords de la grille incluse.
-    """
-    MOORE_COORDS = [
-        (-1, -1),
-        (-1, 0),
-        (-1, 1),
-        (0, -1),
-        (0, 1),
-        (1, -1),
-        (1, 0),
-        (1, 1),
-    ]
-    voisins = []
-    for dx, dy in MOORE_COORDS:
-        vx, vy = x + dx, y + dy
-        if 0 <= vx < taille_grille and 0 <= vy < taille_grille:
-            voisins.append((vx, vy))
-    return voisins
+MOORE_COORDS = [
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, -1),
+    (0, 1),
+    (1, -1),
+    (1, 0),
+    (1, 1),
+]
 
-
-def get_voisins_vides(x, y, grille):
-    """
-    Renvoie les coordonnées des voisins vides (valeur 0) pour une cellule donnée (x, y).
-    """
-    voisins = get_coordonnees_voisins(x, y, grille.shape[0]) # shape[0] car matrice carré
-    voisins_vides = [(vx, vy) for vx, vy in voisins if grille[vx, vy] == 0]
-    return voisins_vides
-
-
-def cellule_au_bord(grille):
-    """
-    Vérifie si une cellule est au bord de la grille (1ère colonne + dernière colonne + 1ère ligne + dernière ligne).
-    1. on génère les coordonnées des bords
-    2. on récupères les coordonnées des cellules non vides
-    3. si une coordonnée de bord est dans les coordonnées des cellules, on retourne True
-    """
-    taille = grille.shape[0]
-    bords_coords = []
-
-    # 1ère et dernière ligne
-    for j in range(taille):
-        bords_coords.append((0, j))  # 1ère ligne
-        bords_coords.append((taille - 1, j))  # dernière ligne
-
-    # 1ère et dernière colonne
-    for i in range(taille):
-        bords_coords.append((i, 0))  # 1ère colonne
-        bords_coords.append((i, taille - 1))  # dernière colonne
-
-    # extraction des coordonnées des cellules
-    coord_cells = np.nonzero(grille)
-    coord_cells_set = set(zip(coord_cells[0], coord_cells[1]))  # transformation pour le set
     
-    # vérification
-    for coord in bords_coords:
-        if coord in coord_cells_set:
-            return True
-    return False
+def find_all_empty_neighbors(grille, coord_cells):
+    """
+    Trouve un voisin vide aléatoire pour chaque cellule dans coord_cells (ou -1 si aucun).
+    grille : Grille de simulation.
+    coord_cells : Coordonnées des cellules (array de forme (n_cells, 2)). 
+    """
+    n_cells = len(coord_cells)
+    result = np.full((n_cells, 2), -1, dtype=int)  # init à -1 pour tout le monde
+    
+    moore_shuffled = MOORE_COORDS.copy() # copie pour ne pas modifier l'original
+    np.random.shuffle(moore_shuffled) # shuffle les coordonées des voisins
+    
+    for dx, dy in moore_shuffled:
+        # Calculer tous les voisins en une fois
+        nx = coord_cells[:, 0] + dx # nouvelle coordonnée x (ligne → axe 0)
+        ny = coord_cells[:, 1] + dy # nouvelle coordonnée y (colonne → axe 1)
+        
+        # check : bordures de la grille + case vide
+        valid = (nx >= 0) & (nx < grille.shape[0]) & (ny >= 0) & (ny < grille.shape[1])
+        empty = grille[nx[valid], ny[valid]] == 0
+        
+        # màj de résultat pour les cellules sans voisin trouvé
+        valid_indices = np.where(valid)[0] # indices valides dans coord_cells
+        empty_indices = valid_indices[empty] # indices des cellules avec voisin vide
+        mask = result[empty_indices, 0] == -1  # Pas encore de voisin trouvé
+        result[empty_indices[mask], 0] = nx[empty_indices[mask]] # mise à jour x
+        result[empty_indices[mask], 1] = ny[empty_indices[mask]] # mise à jour y
+    
+    return result
 
+# ici, on vérifie si une cellule est présente sur les bords de la grille
+# pour ça on regarde les premières et dernières lignes et colonnes
+# any() renvoie True si au moins un élément est vrai
+def cellule_au_bord(grille):
+    cond_l = grille[0, :].any() or grille[-1, :].any()
+    cond_c = grille[:, 0].any() or grille[:, -1].any()
+    return cond_l or cond_c
 # == == #
 
 
@@ -113,19 +100,36 @@ def grille_recentrage(grille):
     if not cellule_au_bord(grille):
         return grille  # pas besoin de recentrer si pas de cellule au bord
     else:
-        # on fait une nouvelle matrice en ajoutant des marges autour de l'ancienne
+        non_zero = np.argwhere(grille > 0)
+        if len(non_zero) == 0:
+            return grille  # grille vide, pas de recentrage nécessaire
+        
+        min_x, min_y = non_zero.min(axis=0)
+        max_x, max_y = non_zero.max(axis=0)
+
+        center_x = (min_x + max_x) // 2
+        center_y = (min_y + max_y) // 2
+
         taille = grille.shape[0]
-        new_taille = taille + 2  # on ajoute une marge de 1 de chaque côté
+        new_taille = taille + 2  # nouvelle taille double
         new_grille = np.zeros((new_taille, new_taille), dtype="int")
 
-        # copier l'ancienne grille dans la nouvelle en la recentrant
-        com = center_of_mass(grille)  # centre de masse de la tumeur
-        com_x, com_y = int(com[0]), int(com[1])  # case la plus proche du centre de masse
+        offset_x = new_taille // 2 - center_x
+        offset_y = new_taille // 2 - center_y
 
-        start_x = max(0, min(new_taille - taille, new_taille // 2 - com_x))  # position de départ pour copier l'ancienne grille (x)
-        start_y = max(0, min(new_taille - taille, new_taille // 2 - com_y))  # position de départ pour copier l'ancienne grille (y)
-        new_grille[start_x : start_x + taille, start_y : start_y + taille] = grille
+        # Ensure indices are within bounds
+        x_start_new = max(offset_x, 0)
+        y_start_new = max(offset_y, 0)
+        x_end_new = min(offset_x + taille, new_taille)
+        y_end_new = min(offset_y + taille, new_taille)
 
+        x_start_old = max(-offset_x, 0)
+        y_start_old = max(-offset_y, 0)
+        x_end_old = x_start_old + (x_end_new - x_start_new)
+        y_end_old = y_start_old + (y_end_new - y_start_new)
+
+        new_grille[x_start_new:x_end_new, y_start_new:y_end_new] = grille[x_start_old:x_end_old, y_start_old:y_end_old]
+        
         return new_grille
 
 
@@ -133,58 +137,72 @@ def grille_mise_a_jour(grille, p_apoptose, p_proliferation, p_stc, p_migration, 
 
     coord_cells = np.transpose(np.nonzero(grille)) # liste des coordonnées des cellules
     n_cells = len(coord_cells)
-    order = np.arange(n_cells)
-    np.random.shuffle(order)
 
     proba_apoptose = np.random.rand(n_cells)
     proba_proliferation = np.random.rand(n_cells)
     proba_migration = np.random.rand(n_cells)
 
-    grille_new = grille.copy()
+    potentiels = grille[coord_cells[:, 0], coord_cells[:, 1]]
+    is_true_stem = potentiels > pmax + 2
+    is_clonogenic_stem = potentiels == pmax + 2
+    is_rtc = potentiels < pmax + 2
 
-    for cell_idx in order:
+    # grille_new = grille.copy()
+    grille_new = grille.copy()
+    voisins_vides = find_all_empty_neighbors(grille, coord_cells)
+
+    # 1. Apoptose (vérifiée sur TOUTES les cellules)
+    for cell_idx in range(n_cells):
         x, y = coord_cells[cell_idx]
-        potentiel = grille_new[x, y]
+        potentiel = potentiels[cell_idx]
+
+        # Si la cellule a déjà été supprimée, on passe à la suivante
+        if grille_new[x, y] == 0:
+            continue
+
+        # Apoptose (RTC uniquement)
+        if is_rtc[cell_idx] and proba_apoptose[cell_idx] < p_apoptose:
+            grille_new[x, y] = 0
+
+    # 2. Prolifération et Migration (seulement pour les cellules avec voisin libre)
+    has_voisin = voisins_vides[:, 0] != -1
+    cellules_avec_voisin = np.where(has_voisin)[0]
+    np.random.shuffle(cellules_avec_voisin)
+
+    for cell_idx in cellules_avec_voisin:
+        x, y = coord_cells[cell_idx]
+        potentiel = potentiels[cell_idx]
 
         # Si la cellule a déjà été supprimée ou déplacée, on passe à la suivante
         if grille_new[x, y] == 0:
             continue
 
-        # True stem cell: potentiel > pmax + 2
-        is_true_stem = potentiel > pmax + 2
-        # Clonogenic stem cell: potentiel == pmax + 2
-        is_clonogenic_stem = potentiel == pmax + 2
-        # RTC: potentiel < pmax + 2
-        is_rtc = potentiel < pmax + 2
-
-        # 1. Apoptose (RTC uniquement)
-        if is_rtc and proba_apoptose[cell_idx] < p_apoptose:
-            grille_new[x, y] = 0
-            continue
-
         # 2. Recherche de voisins vides pour prolifération ou migration
-        voisins_vides = get_voisins_vides(x, y, grille_new)
-        if not voisins_vides:
+        voisin_vide = voisins_vides[cell_idx]
+        if (voisin_vide == -1).all():
             continue  # pas de voisins vides, quiescence
 
-        np.random.shuffle(voisins_vides)
-        vx, vy = voisins_vides[0]
+        vx, vy = voisin_vide
+
+        if grille_new[vx, vy] != 0:
+            continue  # le voisin a déjà été occupé entre-temps
 
         # 3. Prolifération
         if proba_proliferation[cell_idx] < p_proliferation:
-            if is_true_stem:
+            if is_true_stem[cell_idx]:
                 # True stem cell division: asymmetric (RTC) or symmetric (true stem)
                 if np.random.random() < p_stc:
                     grille_new[vx, vy] = pmax + 3  # new true stem (symmetric division)
                 else:
                     grille_new[vx, vy] = pmax + 1  # new RTC (asymmetric division)
-            elif is_clonogenic_stem:
+            elif is_clonogenic_stem[cell_idx]:
                 # Clonogenic stem cell division: only RTC daughters
                 grille_new[vx, vy] = pmax + 1  # new RTC
             else:
                 # RTC division: both mother and daughter lose 1 potential
                 grille_new[vx, vy] = potentiel - 1
                 grille_new[x, y] = potentiel - 1
+            continue
 
         # 4. Migration
         elif proba_migration[cell_idx] < p_migration:
@@ -255,7 +273,7 @@ def simulation(
     p_proliferation = 24 / temps_cc * dt
     p_migration = mu * dt
     n_steps = int(n_jours / dt)  # nombre total de pas horaires
-    p_apoptose = p_apoptose * dt  # probabilité d'apoptose par pas de temps
+    p_apoptose_dt = p_apoptose * dt  # probabilité d'apoptose par pas de temps
 
     # == 2. Gestion dossier si save_img est True == #
 
@@ -287,9 +305,7 @@ def simulation(
     heures_par_jour = int(1 / dt)
 
     for step in range(n_steps):  # boucle principale de la simulation (pas horaires)
-        grille = grille_mise_a_jour(
-            grille, p_apoptose, p_proliferation, p_stc, p_migration, pmax
-        )
+        grille = grille_mise_a_jour(grille, p_apoptose_dt, p_proliferation, p_stc, p_migration, pmax)
         grille = grille_recentrage(grille)
 
         # Sauvegarde de la grille à la fin de chaque jour
@@ -317,8 +333,8 @@ def simulation(
         # condition :
         # 1. fin de journée et show_anim = True
         # 2. fin de journée et save_img = True et jour dans img_itrvl
-        # is_at_end_of_day = (step + 1) % heures_par_jour == 0
-        is_at_end_of_day = True
+        is_at_end_of_day = (step + 1) % heures_par_jour == 0
+        # is_at_end_of_day = True
         if (is_at_end_of_day and (show_anim or (save_img and (((step + 1) // heures_par_jour) in img_itrvl)))):
             ax.clear()
             # si 0 → blanc, si pmax + 2 → jaune foncé (STC like), si pmax + 3 → jaune clair (true STC)
@@ -343,8 +359,8 @@ def simulation(
             ax.set_xlabel(
                 f"Taille: {taille}x{taille} | Cycle cellulaire: {temps_cc}h\n"
                 f"Temps simulé: {n_jours}j | Pas de temps: {dt*24:.0f}h\n"
-                f"Pp: {p_proliferation:.2f} | Ps: {p_stc:.2f} | "
-                f"Pm: {p_migration:.2f} | Pa: {p_apoptose:.2f}\n"
+                f"Pp: {p_proliferation:.3f} | Ps: {p_stc:.3f} | "
+                f"mu: {mu} | Pa: {p_apoptose:.3f}\n"
                 f"Pmax: {pmax}",
                 fontsize=10,
             )
@@ -384,7 +400,8 @@ def pop_vs_time(
     results,
     colors=["#1f77b4", "#ff7f0e", "#2ca02c"],
     log_scale=False,
-    pop="total"
+    pop="total",
+    prefix="",
 ):
     conditions = results.keys()  # list of tested conditions
 
@@ -418,7 +435,7 @@ def pop_vs_time(
         plt.plot(
             x,
             mean_pop,
-            label=f"{condition}",
+            label=f"{prefix} = {condition}",
             color=color,
             linewidth=2,
         )

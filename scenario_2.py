@@ -1,5 +1,7 @@
 from simulation_tumor import simulation, pop_vs_time
+import pandas as pd
 import numpy as np
+
 
 if __name__ == "__main__":
     
@@ -24,7 +26,8 @@ if __name__ == "__main__":
     n_sim_per_pmax = 3 # nombre de simulations par pmax
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c"] # couleurs pour les plots
 
-    results = {f"pmax={pmax_val}": [] for pmax_val in pmax} # liste pour chaque condition avec clef = pmax
+    results = {pmax_val: [] for pmax_val in pmax} # liste pour chaque condition avec clef = pmax
+    final_counts = [] # pour stocker les moyennes et écarts-types
 
     for pmax_val, pinit_val in zip(pmax, pinit):
         sim_params.update({'pmax': pmax_val, 'pinit': pinit_val}) # mise à jour des paramètres de simulation
@@ -39,14 +42,29 @@ if __name__ == "__main__":
                 "save_json": save_img
             }
             cell_counts = simulation(sim_params, **img_args)
-            results[f"pmax={pmax_val}"].append(cell_counts)
+            results[pmax_val].append(cell_counts)
 
-
-    pop_dynamics = pop_vs_time(results, colors=colors, pop="total", log_scale=False)
-    pop_dynamics.savefig("plots/S2_impact_pmax_population_tumorale_totale.png", dpi=150)
-
-    # pop_dynamics_STC = pop_vs_time(results, colors=colors, pop="stc", log_scale=False)
-    # pop_dynamics_STC.savefig("plots/S2_impact_pmax_population_tumorale_STC.png", dpi=150)
+        final_rtc_counts = [sim['rtc'][-1] for sim in results[pmax_val]]
+        final_stc_counts = [sim['stc'][-1] for sim in results[pmax_val]]
+        rtc_mean = np.mean(final_rtc_counts)
+        rtc_std = np.std(final_rtc_counts)
+        stc_mean = np.mean(final_stc_counts)
+        stc_std = np.std(final_stc_counts)
+        final_counts.append({
+            'pmax': pmax_val,
+            'rtc_mean': rtc_mean,
+            'rtc_std': rtc_std,
+            'stc_mean': stc_mean,
+            'stc_std': stc_std
+        })
     
-    pop_dynamics_RTC = pop_vs_time(results, colors=colors, pop="rtc", log_scale=False)
+    pop_dynamics_RTC = pop_vs_time(results, colors=colors, pop="rtc", prefix="pmax")
     pop_dynamics_RTC.savefig("plots/S2_impact_pmax_population_tumorale_RTC.png", dpi=150)
+
+    print("\n--- Résultats finaux des populations cellulaires ---")
+    table_rows = []
+    for row in final_counts:
+        print(f"pmax = {row['pmax']}: RTC mean = {row['rtc_mean']:.2f} ± {row['rtc_std']:.2f}, STC mean = {row['stc_mean']:.2f} ± {row['stc_std']:.2f}")
+        table_rows.append(row)
+    df = pd.DataFrame(table_rows)
+    df.to_csv("data/scenario_2_results.csv", index=False)

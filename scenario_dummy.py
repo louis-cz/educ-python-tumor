@@ -6,9 +6,9 @@ if __name__ == "__main__":
     # paramètres de la simulation
     sim_params = {
         'temps_cc': 24,
-        'taille': 200,
+        'taille': 5,
         'n_jours': 100,
-        'p_stc' : 0.01,
+        'p_stc' : 0.1,
         'mu': 10,
         'pmax': 10,
         'pinit': 13,
