@@ -303,7 +303,7 @@ def simulation(
         "p_proliferation_i": 0.0,
         "p_phagocytose_i": 0.0,
         "mu_i": 10,
-        "n_cells_i": 5
+        "n_cells_i": 10
     }
 
     # paramètres avec valeurs par défaut

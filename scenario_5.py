@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     # on génère un dictionnaire imbriqué pour stocker les résultats
     # {1% : {mu1: [...], mu2: [...], ...}, 10%: {mu1: [...], mu2: [...], ...}}
-    results = {f"p_stc={p_stc}": {f"mu={mu}": [] for mu in mu_values} for p_stc in p_stc_values}
+    results = {p_stc: {mu: [] for mu in mu_values} for p_stc in p_stc_values}
     final_counts = [] # pour stocker les moyennes et écarts-types
 
     for p_stc in p_stc_values:

@@ -7,9 +7,11 @@ Projet de **simulation** de croissance tumorale en **Python**, dans le cadre du 
 ## Structure du projet
 
 - `simulation_tumor.py` : module principal contenant les fonctions de simulation de la croissance tumorale et de visualisation des résultats.
-- `scenario_X.py` : scripts de simulation pour différents scénarios (X = 1, 2, 3). Appellent les fonctions de `simulation_tumor.py` avec des paramètres spécifiques.
+- `simulation_tumor_immune.py` : module étendu pour inclure les interactions avec les cellules immunitaires.
+- `scenario_X.py` : scripts de simulation pour différents scénarios (X = 1, 2, 3). Appellent les fonctions de `simulation_tumor.py` ou `simulation_tumor_immune.py` avec des paramètres spécifiques.
 - `plots/` : dossier pour sauvegarder les graphiques générés.
 - `img/` : dossier pour sauvegarder les images de la croissance tumorale à différents intervalles.
+- `data/` : dossier pour sauvegarder les données brutes des simulations (si nécessaire).
 
 ## Fonctionnement
 
@@ -36,3 +38,15 @@ Le diagramme de flux suivant illustre le processus de simulation :
     - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (tSTC). 
     - Impact de la probabilité d'apoptose sur la dynamique de croissance tumorale.
     - Suivi de la population tumorale RTC et tSTC + ncRTC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
+- **scenario_5.py** : 
+    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (tSTC). 
+    - Impact de la probabilité de division symétrique des cellules tSTC et du taux de déplacemement des cellules sur la dynamique de croissance tumorale. 
+    - Suivi de la population tumorale RTC et tSTC + ncRTC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
+- **scenario_P1.py** : 
+    - Croissance tumorale en présence de cellules immunitaires.
+    - Impact du nombre initial de cellules immunitaires sur la dynamique de croissance tumorale. 
+    - Suivi de la population tumorale totale et des cellules immunitaires en fonction du temps, avec sauvegarde des images de la croissance tumorale à intervalles réguliers.
+- **scenario_P2.py** : 
+    - Croissance tumorale en présence de cellules immunitaires.
+    - Impact de la probabilité maximale d'actes cytotoxiques (`pmax_i`) sur la dynamique de croissance tumorale. 
+    - Suivi de la population tumorale totale et des cellules immunitaires en fonction du temps, avec sauvegarde des images de la croissance tumorale à intervalles réguliers.
