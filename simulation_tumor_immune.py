@@ -55,8 +55,12 @@ def find_all_empty_neighbors(grille, coord_cells):
         valid_indices = np.where(valid)[0] # filtre aux indices valides dans coord_cells
         empty_indices = valid_indices[empty] # filtre aux indices des cellules avec voisin vide
         mask = result[empty_indices, 0] == -1  # Pas encore de voisin trouvé
-        result[empty_indices[mask], 0] = nx[empty_indices[mask]] # mise à jour x
-        result[empty_indices[mask], 1] = ny[empty_indices[mask]] # mise à jour y
+
+        if np.any(mask): # diversification aléatoire si plusieurs options
+            random_choice = np.random.rand(np.sum(mask)) < 0.5
+            indices_to_update = empty_indices[mask][random_choice]
+            result[indices_to_update, 0] = nx[indices_to_update]  # mise à jour x
+            result[indices_to_update, 1] = ny[indices_to_update]  # mise à jour y
     
     # result est donc sous la forme [[x1, y1], [x2, y2], ...] ou [-1, -1] si pas de voisin vide
     return result
@@ -192,8 +196,8 @@ def grille_mise_a_jour(grille,
                                 grille_new[voisin_vide[0], voisin_vide[1]] = potentiel # prolif avec niveau actuel
                         # Tentative de phagocytose
                         if np.random.rand() < p_phagocytose_i:
-                            grille_new[nx, ny] = 0  # phagocytose
-                            grille_new[x, y] = potentiel + 1 # perte d'énergie
+                            grille_new[nx, ny] = potentiel + 1
+                            grille_new[x, y] = 0 
                         break  # une seule cible par cellule immunitaire
 
     # 2. Prolifération et Migration (seulement pour les cellules avec >=1 voisin libre)
@@ -236,7 +240,10 @@ def grille_mise_a_jour(grille,
 
         # 4. Migration
         if proba_migration[cell_idx] < (p_migration_t if potentiel > 0 else p_migration_i):
-            grille_new[vx, vy] = potentiel  # même potentiel
+            # si immune, mouvement seulement si potentiel == pmax_i
+            if potentiel < 0 and potentiel != pmax_i:
+                continue  # pas de mouvement pour les cellules immunitaires non au max
+            grille_new[vx, vy] = potentiel  # case voisine prend la valeur de la cellule mère
             grille_new[x, y] = 0  # case mère devient vide
 
     return grille_new
@@ -415,12 +422,14 @@ def simulation(
             # pmax_t +2 et +3 : jaune et jaune
             colors = []
             for i in range(pmax_i, 0):
-                green_value = int(255 - (i - pmax_i) * (200 / (0 - pmax_i)))
-                colors.append(f"#00{green_value:02x}00")  # dégradé de vert
+                frac = (i - pmax_i) / (0 - pmax_i)
+                green_value = int(255 - frac * 200)
+                colors.append(f"#00{green_value:02x}00")  # dégradé de vert (clair à foncé)
             colors.append("#ffffff")  # blanc pour 0
             for i in range(1, pmax_t + 2):
-                red_value = int(255 - (i - 1) * (200 / (pmax_t + 1 - 1)))
-                colors.append(f"#{red_value:02x}0000")  # dégradé de rouge
+                frac = (i - 1) / (pmax_t + 1 - 1)
+                red_value = int(255 - frac * 200)
+                colors.append(f"#{red_value:02x}0000")  # dégradé de rouge (clair à foncé)
             colors.append("#ffff00")  # jaune pour pmax_t +2
             colors.append("#ffff00")  # jaune pour pmax_t +3
 

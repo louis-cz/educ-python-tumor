@@ -11,7 +11,7 @@ if __name__ == "__main__":
         'taille': 100,
         # tumoraux
         "pmax_t": 10,
-        "pinit_t": 12,
+        "pinit_t": 13,
         "p_apoptose_t": 0.01,
         "p_proliferation_t": 0.1,
         "p_stc_t": 0.01,
@@ -27,13 +27,12 @@ if __name__ == "__main__":
     n_sim_per_pmax = 3 # nombre de simulations par pmax
     results = {pmax_i_val: [] for pmax_i_val in pmax_i_values}
     final_counts = []
-    colors_i = ["#2ca02c", "#17becf", "#bcbd22", "#9467bd", "#8c564b"]
-    colors_t = ["#d62728", "#ff7f0e", "#1f77b4", "#e377c2", "#7f7f7f"]
+    colors_i = ["#2ca02c", "#17becf", "#bcbd22", "#9467bd"]
+    colors_t = ["#d62728", "#ff7f0e", "#1f77b4", "#e377c2"]
     img_intervals = {
         -10: [10, 20, 30, 50, 70, 100, 150, 200],
         -5: [10, 20, 30, 50, 70, 100, 150, 200],
         -3: [10, 20, 30, 50, 70, 100, 150, 200],
-        -2: [10, 20, 30, 50, 70, 100, 150, 200],
         -1: [10, 20, 30, 50, 70, 100, 150, 200],
     }
     
@@ -85,4 +84,4 @@ if __name__ == "__main__":
         print(f"pmax_i = {row['pmax_i']}: RTC mean = {row['rtc_mean']:.2f} ± {row['rtc_std']:.2f}, STC mean = {row['stc_mean']:.2f} ± {row['stc_std']:.2f} + Immune mean = {row['immune_mean']:.2f} ± {row['immune_std']:.2f}")
         table_rows.append(row)
     df = pd.DataFrame(table_rows)
-    df.to_csv("data/scenario_P_results.csv", index=False)
+    df.to_csv("data/scenario_P2_results.csv", index=False)

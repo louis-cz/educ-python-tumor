@@ -11,7 +11,7 @@ if __name__ == "__main__":
         'taille': 100,
         # tumoraux
         "pmax_t": 10,
-        "pinit_t": 12,
+        "pinit_t": 13,
         "p_apoptose_t": 0.01,
         "p_proliferation_t": 0.1,
         "p_stc_t": 0.01,
@@ -85,4 +85,4 @@ if __name__ == "__main__":
         print(f"n_cells_i = {row['n_cells_i']}: RTC mean = {row['rtc_mean']:.2f} ± {row['rtc_std']:.2f}, STC mean = {row['stc_mean']:.2f} ± {row['stc_std']:.2f} + Immune mean = {row['immune_mean']:.2f} ± {row['immune_std']:.2f}")
         table_rows.append(row)
     df = pd.DataFrame(table_rows)
-    df.to_csv("data/scenario_P_results.csv", index=False)
+    df.to_csv("data/scenario_P1_results.csv", index=False)
