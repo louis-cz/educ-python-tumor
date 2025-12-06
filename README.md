@@ -1,8 +1,8 @@
 # educ-python-tumor
 
-Projet de **simulation** de croissance tumorale en **Python**, dans le cadre du de l'UE **PLS2** de l'Université de Rennes. Le modèle est une version adapté de l'article ["Cellular-automaton model for tumor growth dynamics: Virtualization of different scenarios"](https://doi.org/10.1016/j.compbiomed.2022.106481) de Carlos A. Valentim, José A. Rabi et Sergio A. David (2023).
+Projet de **simulation** de croissance tumorale en **Python**, dans le cadre du de l'UE **PLS2** de l'Université de Rennes. Le modèle est une version adaptée de l'article ["Cellular-automaton model for tumor growth dynamics: Virtualization of different scenarios"](https://doi.org/10.1016/j.compbiomed.2022.106481) de Carlos A. Valentim, José A. Rabi et Sergio A. David (2023).
 
-⚙️ numpy, matplotlib, seaborn, scipy
+⚙️ numpy, matplotlib, seaborn, pandas
 
 ## Structure du projet
 
