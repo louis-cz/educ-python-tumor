@@ -1,6 +1,11 @@
-from simulation_tumor import simulation
-from PIL import Image
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from simulation_tumor_immune import simulation
+from PIL import Image
+
 
 def to_gif(img_dir, gif_name, img_intervals):
     images = []
@@ -20,20 +25,28 @@ if __name__ == "__main__":
     
     # paramètres de la simulation
     sim_params = {
-        'temps_cc': 24,
-        'taille': 200,
-        'n_jours': 220,
-        'p_apoptose': 0,
-        'p_stc' : 0.05,
-        'mu': 10,
-        'pmax': 10,
-        'pinit': 13
+        # généraux
+        'n_jours': 500,
+        'taille': 100,
+        # tumoraux
+        "pmax_t": 15,
+        "pinit_t": 18,
+        "p_apoptose_t": 0.01,
+        "p_proliferation_t": 0.1,
+        "p_stc_t": 0.02,
+        "mu_t": 5,
+        # immunitaires
+        "p_apoptose_i": 0.01,
+        "p_proliferation_i": 0.03,
+        "p_phagocytose_i": 0.5, # par jour
+        "mu_i": 10,
+        "n_cells_i" : 25
     }
 
     img_intervals = [i for i in range(sim_params['n_jours'])] 
 
     # sim
-    cell_counts = simulation(sim_params, save_img=True, img_itrvl=img_intervals, img_dir="img/S3_gif")
+    cell_counts = simulation(sim_params, save_img=True, img_itrvl=img_intervals, img_dir="img/SP2_gif")
 
     # gif
-    to_gif("img/S3_gif", "S3_simulation.gif", img_intervals[1:]) # remove day 0
+    to_gif("img/SP2_gif", "SP2_simulation.gif", img_intervals[1:]) # remove day 0
