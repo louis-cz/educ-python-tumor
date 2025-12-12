@@ -9,7 +9,7 @@ if __name__ == "__main__":
     sim_params = {
         'temps_cc': 24,
         'taille': 200,
-        'n_jours': 420,
+        'n_jours': 300,
         'p_stc' : 0.05,
         'mu': 10,
         'pmax': 10,

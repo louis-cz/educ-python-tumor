@@ -8,18 +8,17 @@ Projet de **simulation** de croissance tumorale en **Python**, dans le cadre du 
 
 - `simulation_tumor.py` : module principal contenant les fonctions de simulation de la croissance tumorale et de visualisation des résultats.
 - `simulation_tumor_immune.py` : module étendu pour inclure les interactions avec les cellules immunitaires.
-- `scenario_X.py` : scripts de simulation pour différents scénarios (X = 1, 2, 3). Appellent les fonctions de `simulation_tumor.py` ou `simulation_tumor_immune.py` avec des paramètres spécifiques.
+- `scenario_X.py` : scripts de simulation pour différents scénarios (X = {1, 2, 3, 4, 5, P1, P2}). Appellent les fonctions de `simulation_tumor.py` ou `simulation_tumor_immune.py` avec des paramètres spécifiques.
+- `other_scripts` : dossier contenant des scripts auxiliaires (optimisation, tests, etc.).
 - `plots/` : dossier pour sauvegarder les graphiques générés.
 - `img/` : dossier pour sauvegarder les images de la croissance tumorale à différents intervalles.
-- `data/` : dossier pour sauvegarder les données brutes des simulations (si nécessaire).
+- `data/` : dossier pour sauvegarder les données brutes ou les résultats des simulations (si nécessaire).
 
 ## Fonctionnement
 
-Les cellules sont modélisées sur une grille 2D, où chaque cellule peut être de différents types (cellules saines, cellules cancéreuses classiques, cellules cancéreuses "stem-like", etc.). La dynamique de croissance tumorale est simulée en fonction de paramètres tels que la probabilité maximale de division cellulaire (`pmax`), la probabilité d'apoptose, et d'autres facteurs biologiques.
+Les cellules sont modélisées sur une grille 2D, où chaque cellule peut être de différents types (cellules saines, cellules cancéreuses classiques, cellules cancéreuses "stem-like", etc.). La dynamique de croissance tumorale est simulée en fonction de paramètres tels que la probabilité maximale de division cellulaire (`pmax`), la probabilité d'apoptose, et d'autres facteurs biologiques. Le diagramme de flux suivant illustre le processus de simulation (par étape, par cellule):
 
-Le diagramme de flux suivant illustre le processus de simulation :
-
-![Diagramme de flux de la croissance tumorale](img/flow_diagram.png)
+![Diagramme de flux de la croissance tumorale](plots/flow_diagram.png)
 
 ## Scénarios simulés
 - **scenario_1.py** : 
@@ -27,24 +26,24 @@ Le diagramme de flux suivant illustre le processus de simulation :
     - Impact de la probabilité maximale de division cellulaire (`pmax`) sur la dynamique de croissance tumorale. 
     - Suivi de la population tumorale totale en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
 - **scenario_2.py** : 
-    - Croissance tumorale originant d'une cellule cancéreuse "stem-like" non clonogénique (ncSTC). 
+    - Croissance tumorale originant d'une cellule cancéreuse "stem-like" non clonogénique (CSC). 
     - Impact de la probabilité maximale de division cellulaire (`pmax`) sur la dynamique de croissance tumorale. 
     - Suivi de la population tumorale totale en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
 - **scenario_3.py** : 
-    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (tSTC). 
+    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (STC). 
     - Impact de la probabilité maximale de division cellulaire (`pmax`) sur la dynamique de croissance tumorale. 
-    - Suivi de la population tumorale RTC et tSTC + ncRTC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
+    - Suivi de la population tumorale RTC et STC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
 - **scenario_4.py** : 
-    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (tSTC). 
+    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (STC). 
     - Impact de la probabilité d'apoptose sur la dynamique de croissance tumorale.
-    - Suivi de la population tumorale RTC et tSTC + ncRTC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
+    - Suivi de la population tumorale RTC et STC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
 - **scenario_5.py** : 
-    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (tSTC). 
-    - Impact de la probabilité de division symétrique des cellules tSTC et du taux de déplacemement des cellules sur la dynamique de croissance tumorale. 
-    - Suivi de la population tumorale RTC et tSTC + ncRTC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
+    - Croissance tumorale originant d'une cellule cancéreuse réellement "stem-like" (STC). 
+    - Impact de la probabilité de division symétrique des cellules STC et du taux de déplacemement des cellules sur la dynamique de croissance tumorale. 
+    - Suivi de la population tumorale RTC et STC en fonction du temps et sauvegarde des images de la croissance tumorale à intervalles réguliers.
 - **scenario_P1.py** : 
     - Croissance tumorale en présence de cellules immunitaires.
-    - Impact du nombre initial de cellules immunitaires sur la dynamique de croissance tumorale. 
+    - Impact du nombre initial de cellules immunitaires (`n_cells_i`) sur la dynamique de croissance tumorale. 
     - Suivi de la population tumorale totale et des cellules immunitaires en fonction du temps, avec sauvegarde des images de la croissance tumorale à intervalles réguliers.
 - **scenario_P2.py** : 
     - Croissance tumorale en présence de cellules immunitaires.
